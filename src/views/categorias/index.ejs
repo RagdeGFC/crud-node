@@ -17,10 +17,11 @@
       <% categorias.forEach(categoria => { %>
       <tr>
         <td>
-          <a href="/categorias/<%= categoria.id %>"><%= categoria.nombre %></a>
+          <a href="/categorias/<%= categoria.id %>"><%= categoria.name %></a>
         </td>
         <td><%= categoria.email %></td>
-        <td>********</td> <td class="cell-inline">
+        <td>********</td> 
+        <td class="cell-inline">
           <a
             class="edit"
             href="/categorias/<%= categoria.id %>/edit"

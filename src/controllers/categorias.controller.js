@@ -1,139 +1,105 @@
-const fs = require("fs");
-const path = require("path");
-const bcrypt = require("bcrypt");
-
-let categorias = [];
-
-// --- Vistas y Formularios ---
+const model = require("../models/Category");
 
 const create = (req, res) => {
   res.render("categorias/create");
 };
 
+const store = (req, res) => {
+  // Se agregan los nuevos campos a la desestructuración de req.body
+  const { name, email, password } = req.body;
+
+  // Se pasan los nuevos campos a la función create del modelo
+  model.create(name, email, password, (error, id) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    console.log(id);
+
+    res.redirect("/categorias");
+  });
+};
+
 const index = (req, res) => {
-  try {
-    categorias = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../categorias.json"), "utf-8")
-    );
-  } catch (error) {
-    categorias = [];
-  }
-  res.render("categorias/index", { categorias });
+  model.findAll((error, categorias) => {
+    if (error) {
+      return res.status(500).send("Internal Server Error");
+    }
+
+    res.render("categorias/index", { categorias });
+  });
+};
+
+const show = (req, res) => {
+  const { id } = req.params;
+
+  model.findById(id, (error, categoria) => {
+    if (error) {
+      return res.status(500).send("Internal Server Error");
+    }
+
+    if (!categoria) {
+      return res.status(404).send("No existe la categoría");
+    }
+
+    res.render("categorias/show", { categoria });
+  });
 };
 
 const edit = (req, res) => {
-  try {
-    categorias = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../categorias.json"), "utf-8")
-    );
-  } catch (error) {
-    categorias = [];
-  }
-
   const { id } = req.params;
-  const categoria = categorias.find((categoria) => categoria.id == id);
 
-  if (!categoria) {
-    return res.status(404).send("No existe la categoria");
-  }
+  model.findById(id, (error, categoria) => {
+    if (error) {
+      return res.status(500).send("Internal Server Error");
+    }
 
-  res.render("categorias/edit", { categoria });
-};
+    if (!categoria) {
+      return res.status(404).send("No existe la categoría");
+    }
 
-// --- Lógica del CRUD (Crear, Actualizar, Borrar) ---
-
-const store = async (req, res) => {
-  const { nombre, email, password } = req.body;
-  let categorias = [];
-
-  try {
-    const data = fs.readFileSync(
-      path.resolve(__dirname, "../../categorias.json"),
-      "utf-8"
-    );
-    categorias = JSON.parse(data);
-  } catch (error) {
-    console.log("El archivo de categorías no existe o está vacío. Creando uno nuevo.");
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const categoria = {
-    id: Date.now(),
-    nombre,
-    email,
-    password: hashedPassword,
-  };
-
-  categorias.push(categoria);
-
-  fs.writeFileSync(
-    path.resolve(__dirname, "../../categorias.json"),
-    JSON.stringify(categorias, null, 2)
-  );
-
-  res.redirect("/categorias");
+    res.render("categorias/edit", { categoria });
+  });
 };
 
 const update = (req, res) => {
-  try {
-    categorias = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../categorias.json"), "utf-8")
-    );
-  } catch (error) {
-    categorias = [];
-  }
-
   const { id } = req.params;
-  const { nombre, email } = req.body;
-  const categoria = categorias.find((categoria) => categoria.id == id);
+  // Se agregan los nuevos campos a la desestructuración de req.body
+  const { name, email, password } = req.body;
 
-  if (!categoria) {
-    return res.status(404).send("No existe la categoria");
-  }
+  // Se pasan los nuevos campos a la función update del modelo
+  model.update(id, name, email, password, (error, changes) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).send("Internal Server Error");
+    }
 
-  categoria.nombre = nombre;
-  categoria.email = email;
+    console.log(changes);
 
-  fs.writeFileSync(
-    path.resolve(__dirname, "../../categorias.json"),
-    JSON.stringify(categorias, null, 2)
-  );
-
-  res.redirect("/categorias");
+    res.redirect("/categorias");
+  });
 };
 
 const destroy = (req, res) => {
-  try {
-    categorias = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../categorias.json"), "utf-8")
-    );
-  } catch (error) {
-    categorias = [];
-  }
-
   const { id } = req.params;
-  const index = categorias.findIndex((categoria) => categoria.id == id);
 
-  if (index == -1) {
-    return res.status(404).send("No existe la categoria");
-  }
+  model.destroy(id, (error, changes) => {
+    if (error) {
+      return res.status(500).send("Internal Server Error");
+    }
 
-  categorias.splice(index, 1);
+    console.log(changes);
 
-  fs.writeFileSync(
-    path.resolve(__dirname, "../../categorias.json"),
-    JSON.stringify(categorias, null, 2)
-  );
-
-  res.redirect("/categorias");
+    res.redirect("/categorias");
+  });
 };
-
-// --- Exportación de Funciones ---
 
 module.exports = {
   create,
   store,
   index,
+  show,
   edit,
   update,
   destroy,
