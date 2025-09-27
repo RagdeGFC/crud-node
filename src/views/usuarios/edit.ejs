@@ -2,7 +2,7 @@
 
 <form
   class="form"
-  action="/categorias/<%= categoria.id %>?_method=PUT"
+  action="/usuarios/<%= usuario.id %>?_method=PUT"
   method="post"
 >
   <div class="form__group">
@@ -12,7 +12,7 @@
       type="text"
       name="name"
       id="nombre"
-      value="<%= categoria.name %>"
+      value="<%= usuario.nombre %>"
       <!-- required -->
     />
   </div>
@@ -24,7 +24,7 @@
       type="email"
       name="email"
       id="email"
-      value="<%= categoria.email %>"
+      value="<%= usuario.email %>"
       required
     />
   </div>

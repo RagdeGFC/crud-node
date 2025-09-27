@@ -1,10 +1,10 @@
 <h1>Listado de Usuarios</h1>
 
-<a class="button button--primary" href="/categorias/create"
+<a class="button button--primary" href="/usuarios/create"
   >Crear un usuario</a
 >
 
-<section class="categorias">
+<section class="usuarios">
   <table>
     <thead>
       <tr>
@@ -14,23 +14,23 @@
       </tr>
     </thead>
     <tbody>
-      <% categorias.forEach(categoria => { %>
+      <% usuarios.forEach(usuario => { %>
       <tr>
         <td>
-          <a href="/categorias/<%= categoria.id %>"><%= categoria.name %></a>
+          <a href="/usuarios/<%= usuario.id %>"><%= usuario.nombre %></a>
         </td>
-        <td><%= categoria.email %></td>
+        <td><%= usuario.email %></td>
         <td>********</td> 
         <td class="cell-inline">
           <a
             class="edit"
-            href="/categorias/<%= categoria.id %>/edit"
+            href="/usuarios/<%= usuario.id %>/edit"
             >Edit</a
           >
  
           <form
             class="form-delete"
-            action="/categorias/<%= categoria.id %>?_method=DELETE"
+            action="/usuarios/<%= usuario.id %>?_method=DELETE"
             method="post"
           >
             <button class="button button--danger" type="submit">Borrar</button>

@@ -23,7 +23,8 @@ app.set("layout", "layouts/layout");
 const mainRouter = require("./src/routes/main.router");
 app.use(mainRouter);
 
-app.use("/categorias", require("./src/routes/categorias.router"));
+// CÓDIGO NUEVO
+app.use("/usuarios", require("./src/routes/usuarios.router"));
 
 const PORT = process.env.PORT || 3001;
 
