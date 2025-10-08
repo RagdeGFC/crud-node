@@ -9,6 +9,5 @@ const pool = mysql.createPool({
 });
 
 // Exportar la conexión. 
-// Usamos .promise() para que las consultas
-// puedan usar la sintaxis moderna de Node.js (async/await)
+// Usamos .promise() para que las consultas puedan usar la sintaxis moderna de Node.js (async/await)
 module.exports = pool.promise();

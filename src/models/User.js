@@ -1,42 +1,61 @@
 const db = require('./db_mysql'); 
 
-// Se usa un estilo de programación moderno (Promesas/Async-Await) 
-// porque es el estándar con 'mysql2/promise()', es más limpio 
+// ########################################################
+// CLASE MODELO USER: LÓGICA DE INTERACCIÓN CON LA BASE DE DATOS
+// (CRUD COMPLETO CON STORED PROCEDURES)
+// ########################################################
 
 class User {
-    // INSERT (Crear un nuevo usuario)
+    // ###########################
+    // 1. CREATE (Crear un nuevo usuario) - CON STORED PROCEDURE
+    // ###########################
     static create(name, email, password) {
-        const sql = `INSERT INTO usuarios (nombre, email, contrasena) VALUES (?, ?, ?)`;
-        // db.execute() devuelve una Promesa con los resultados.
-        // Los valores se pasan en un array separado para evitar inyecciones SQL (seguridad).
+        // Ejecuta el SP que inserta el usuario.
+        const sql = `CALL sp_create_user(?, ?, ?)`;
         return db.execute(sql, [name, email, password]);
     }
-
-    // SELECT ALL (Listar todos los usuarios)
-    static findAll() {
-        // Seleccionamos la 'id', 'nombre' y 'email'. La contraseña NO se debe listar.
-        const sql = `SELECT id, nombre, email FROM usuarios`;
-        // db.execute devuelve [rows, fields]. 'rows' son nuestros datos.
-        return db.execute(sql);
+    
+    // ###########################
+    // 2. READ ALL (Listar todos los usuarios) - CON STORED PROCEDURE
+    // ###########################
+    static async findAll() {
+        const sql = `CALL sp_find_all_users()`;
+        // El SP devuelve el resultado anidado: extraemos el array de datos puros.
+        const [results] = await db.execute(sql);
+        return results[0]; 
     }
-
-    // SELECT BY ID (Mostrar un usuario específico)
-    static findById(id) {
-        // Obtenemos solo un usuario por su ID
-        const sql = `SELECT id, nombre, email FROM usuarios WHERE id = ?`;
-        return db.execute(sql, [id]);
+    
+    // ###########################
+    // 3. READ BY ID (Mostrar un usuario específico) - CON STORED PROCEDURE
+    // ###########################
+    static async findById(id) {
+        const sql = `CALL sp_find_user_by_id(?)`;
+        // Extraemos el objeto usuario individual.
+        const [results] = await db.execute(sql, [id]);
+        return results[0][0]; 
     }
-
-    // UPDATE (Actualizar un usuario)
+    
+    // ###########################
+    // 4. UPDATE (Actualizar un usuario) - CON STORED PROCEDURE
+    // ###########################
     static update(id, name, email, password) {
-        const sql = `UPDATE usuarios SET nombre = ?, email = ?, contrasena = ? WHERE id = ?`;
-        return db.execute(sql, [name, email, password, id]);
+        // Ejecutamos el SP para actualizar. Los parámetros se envían en el orden [name, email, password, id].
+        const sql = `CALL sp_update_user(?, ?, ?, ?)`;
+        // NOTA: El orden aquí es crucial para que coincida con la definición del SP.
+        return db.execute(sql, [name, email, password, id]); 
     }
 
-    // DELETE (Eliminar un usuario)
-    static destroy(id) {
-        const sql = `DELETE FROM usuarios WHERE id = ?`;
-        return db.execute(sql, [id]);
+    // ###########################
+    // 5. DELETE (Eliminar un usuario) - CON STORED PROCEDURE
+    // ###########################
+    static async destroy(id) {
+        const sql = `CALL sp_delete_user(?)`;
+        // El SP devuelve el conteo de filas afectadas.
+        const [results] = await db.execute(sql, [id]);
+        
+        // Devolvemos el primer resultado del SP, que contiene el objeto { affected_rows: X }
+        // Esto permite que el controlador use [result] = await User.destroy(id);
+        return results;
     }
 }
 

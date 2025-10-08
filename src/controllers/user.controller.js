@@ -3,13 +3,17 @@ const User = require("../models/User");
 
 // Usaremos async/await para manejar las operaciones asíncronas con la Base de Datos.
 
+// ########################################################
+// Métodos para RENDERIZAR VISTAS (GET)
+// ########################################################
+
 const create = (req, res) => {
-    // 1. Captura el mensaje de error y los datos viejos (si existen) de los query parameters
+    // MÉTODO: GET
+    // RENDER: Muestra el formulario de creación.
     const errorMessage = req.query.error;
-    const oldName = req.query.name || ''; // Si no existe, es un string vacío
+    const oldName = req.query.name || ''; 
     const oldEmail = req.query.email || ''; 
 
-    // 2. Pasa el error y los datos viejos a la vista
     res.render("usuarios/create", { 
         errorMessage: errorMessage,
         oldName: oldName,
@@ -17,42 +21,13 @@ const create = (req, res) => {
     }); 
 };
 
-const store = async (req, res) => {
-    const { name, email, password } = req.body;
-
-    try {
-        // 1. Intenta crear el usuario en la BD. 
-        await User.create(name, email, password);
-        
-        // Si tiene éxito, redirige a la lista
-        res.redirect("/usuarios"); 
-
-    } catch (error) {
-        
-        // 2. Comprobación del error de duplicado de MySQL
-        if (error.code === 'ER_DUP_ENTRY') {
-            
-            // 3. Establece un mensaje de error para mostrar al usuario.
-            const errorMessage = `El email "${email}" ya está registrado. Por favor, usa otro.`;
-            
-            // Si la duplicación fue en el campo 'email', redirige a la vista de creación con el error
-            // IMPORTANTE: Aquí se usa un 'query parameter' para enviar el mensaje.
-            return res.redirect(`/usuarios/create?error=${encodeURIComponent(errorMessage)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`);
-        }
-
-        // Si es otro tipo de error (BD caída, sintaxis, etc.)
-        console.error("Error al crear usuario:", error);
-        return res.status(500).send("Error interno del servidor al crear usuario");
-    }
-};
-
 const index = async (req, res) => {
-    // Muestra el listado de todos los usuarios.
+    // MÉTODO: GET
+    // RENDER: Muestra el listado de todos los usuarios.
     try {
-        // Obtenemos [rows, fields]. Desestructuramos para obtener solo 'rows'.
-        const [usuarios] = await User.findAll(); 
+        // El Modelo devuelve el array de usuarios directo.
+        const usuarios = await User.findAll(); 
 
-        // Pasamos la lista de usuarios a la vista.
         res.render("usuarios/index", { usuarios: usuarios });
     } catch (error) {
         console.error("Error al obtener usuarios:", error);
@@ -61,11 +36,12 @@ const index = async (req, res) => {
 };
 
 const show = async (req, res) => {
-    // Muestra la información detallada de un usuario.
+    // MÉTODO: GET
+    // RENDER: Muestra la información detallada de un usuario.
     const { id } = req.params;
     try {
-        const [rows] = await User.findById(id);
-        const usuario = rows[0]; // El primer elemento es el usuario
+        // El Modelo devuelve el objeto usuario directo.
+        const usuario = await User.findById(id); 
 
         if (!usuario) {
             return res.status(404).send("No existe el usuario");
@@ -78,11 +54,12 @@ const show = async (req, res) => {
 };
 
 const edit = async (req, res) => {
-    // Muestra el formulario para editar un usuario existente.
+    // MÉTODO: GET
+    // RENDER: Muestra el formulario para editar un usuario existente.
     const { id } = req.params;
     try {
-        const [rows] = await User.findById(id);
-        const usuario = rows[0];
+        // El Modelo devuelve el objeto usuario directo.
+        const usuario = await User.findById(id);
 
         if (!usuario) {
             return res.status(404).send("No existe el usuario");
@@ -94,8 +71,35 @@ const edit = async (req, res) => {
     }
 };
 
+// ########################################################
+// Métodos para PROCESAR DATOS (POST/PUT/DELETE)
+// ########################################################
+
+const store = async (req, res) => {
+    // MÉTODO: POST
+    // PROCESO: Crea un nuevo usuario en la base de datos usando el Stored Procedure.
+    const { name, email, password } = req.body;
+
+    try {
+        await User.create(name, email, password);
+        res.redirect("/usuarios"); 
+
+    } catch (error) {
+        
+        // Comprobación del error de duplicado de MySQL (código 1062 es ER_DUP_ENTRY)
+        if (error.errno === 1062) { 
+            const errorMessage = `El email "${email}" ya está registrado. Por favor, usa otro.`;
+            return res.redirect(`/usuarios/create?error=${encodeURIComponent(errorMessage)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`);
+        }
+
+        console.error("Error al crear usuario:", error);
+        return res.status(500).send("Error interno del servidor al crear usuario");
+    }
+};
+
 const update = async (req, res) => {
-    // Actualiza el usuario en la base de datos.
+    // MÉTODO: PUT (o POST simulado)
+    // PROCESO: Actualiza el usuario en la base de datos usando el Stored Procedure.
     const { id } = req.params;
     const { name, email, password } = req.body;
 
@@ -110,19 +114,28 @@ const update = async (req, res) => {
 };
 
 const destroy = async (req, res) => {
-    // Elimina el usuario de la base de datos.
+    // MÉTODO: DELETE (o POST simulado)
+    // PROCESO: Elimina el usuario de la base de datos usando el Stored Procedure.
     const { id } = req.params;
 
     try {
+        // El Modelo devuelve el objeto con el conteo de filas afectadas.
         const [result] = await User.destroy(id);
         
-        console.log(`Usuarios eliminados: ${result.affectedRows}`);
+        // Accedemos al resultado correcto del SP de eliminación
+        const affectedRows = result[0].affected_rows;
+        
+        console.log(`Usuarios eliminados: ${affectedRows}`);
         res.redirect("/usuarios");
     } catch (error) {
         console.error("Error al eliminar usuario:", error);
         return res.status(500).send("Error interno del servidor al eliminar usuario");
     }
 };
+
+// ########################################################
+// EXPORTACIÓN DE MÉTODOS
+// ########################################################
 
 module.exports = {
     create,
