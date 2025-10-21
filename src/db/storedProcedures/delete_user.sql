@@ -1,20 +1,17 @@
--- #############################################
--- 5. SCRIPT PARA CREAR EL STORED PROCEDURE (DELETE)
--- #############################################
-
+#############################################
+# SCRIPT PARA CREAR EL STORED PROCEDURE (SOFT DELETE CORREGIDO)
+#############################################
 DELIMITER $$
-
 CREATE PROCEDURE sp_delete_user(
-    IN p_id INT -- Recibe la ID del usuario a eliminar
+    IN p_id INT 
 )
 BEGIN
-    -- Eliminar el registro de la tabla 'usuarios'
-    DELETE FROM usuarios 
+    UPDATE usuarios
+    SET 
+        esta_eliminado = 1,
+        -- ESTA ES LA LÍNEA CLAVE QUE DEBE EJECUTARSE
+        email = CONCAT(email, '.deleted.', p_id, '.', UNIX_TIMESTAMP())
     WHERE id = p_id;
-
-    -- Devolver el número de filas afectadas (útil para validar en el modelo).
     SELECT ROW_COUNT() AS affected_rows;
-
 END$$
-
 DELIMITER ;

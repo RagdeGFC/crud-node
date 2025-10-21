@@ -1,7 +1,7 @@
 // Importamos el Modelo de Usuario.
 const User = require("../models/User");
 
-// Usaremos async/await para manejar las operaciones asíncronas con la Base de Datos.
+// Usaremos async/await para manejar las operaciones asincronas con la Base de Datos.
 
 // ########################################################
 // Métodos para RENDERIZAR VISTAS (GET)
@@ -10,25 +10,33 @@ const User = require("../models/User");
 const create = (req, res) => {
     // MÉTODO: GET
     // RENDER: Muestra el formulario de creación.
-    const errorMessage = req.query.error;
-    const oldName = req.query.name || ''; 
-    const oldEmail = req.query.email || ''; 
 
-    res.render("usuarios/create", { 
+    const errorMessage = req.query.error;
+    const oldName = req.query.name || '';
+    const oldEmail = req.query.email || '';
+
+    res.render("usuarios/create", {
         errorMessage: errorMessage,
         oldName: oldName,
         oldEmail: oldEmail
-    }); 
+    });
 };
 
 const index = async (req, res) => {
     // MÉTODO: GET
     // RENDER: Muestra el listado de todos los usuarios.
-    try {
-        // El Modelo devuelve el array de usuarios directo.
-        const usuarios = await User.findAll(); 
 
-        res.render("usuarios/index", { usuarios: usuarios });
+    const searchTerm = req.query.q || '';  // Lógica de Búsqueda Flexible: Recibimos el término por req.query.q
+
+    try {
+        // El Modelo devuelve el array de usuarios.
+        // Ahora pasamos el término de búsqueda al modelo.
+        const usuarios = await User.findAll(searchTerm); 
+
+        res.render("usuarios/index", { 
+            usuarios: usuarios,
+            searchTerm: searchTerm // Enviamos el término a la vista para que el campo de búsqueda lo muestre.
+        });
     } catch (error) {
         console.error("Error al obtener usuarios:", error);
         return res.status(500).send("Error interno del servidor al listar usuarios");
@@ -39,9 +47,10 @@ const show = async (req, res) => {
     // MÉTODO: GET
     // RENDER: Muestra la información detallada de un usuario.
     const { id } = req.params;
+
     try {
         // El Modelo devuelve el objeto usuario directo.
-        const usuario = await User.findById(id); 
+        const usuario = await User.findById(id);
 
         if (!usuario) {
             return res.status(404).send("No existe el usuario");
@@ -57,6 +66,7 @@ const edit = async (req, res) => {
     // MÉTODO: GET
     // RENDER: Muestra el formulario para editar un usuario existente.
     const { id } = req.params;
+
     try {
         // El Modelo devuelve el objeto usuario directo.
         const usuario = await User.findById(id);
@@ -77,19 +87,20 @@ const edit = async (req, res) => {
 
 const store = async (req, res) => {
     // MÉTODO: POST
-    // PROCESO: Crea un nuevo usuario en la base de datos usando el Stored Procedure.
+    // PROCESO: Crea un nuevo usuario en la base de datos.
     const { name, email, password } = req.body;
 
     try {
         await User.create(name, email, password);
-        res.redirect("/usuarios"); 
-
+        res.redirect("/usuarios");
     } catch (error) {
-        
         // Comprobación del error de duplicado de MySQL (código 1062 es ER_DUP_ENTRY)
-        if (error.errno === 1062) { 
+        if (error.errno === 1062) {
             const errorMessage = `El email "${email}" ya está registrado. Por favor, usa otro.`;
-            return res.redirect(`/usuarios/create?error=${encodeURIComponent(errorMessage)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`);
+            // Redirigimos al formulario con los datos anteriores (old data) y el mensaje de error.
+            return res.redirect(
+                `/usuarios/create?error=${encodeURIComponent(errorMessage)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
+            );
         }
 
         console.error("Error al crear usuario:", error);
@@ -99,12 +110,12 @@ const store = async (req, res) => {
 
 const update = async (req, res) => {
     // MÉTODO: PUT (o POST simulado)
-    // PROCESO: Actualiza el usuario en la base de datos usando el Stored Procedure.
+    // PROCESO: Actualiza el usuario en la base de datos.
     const { id } = req.params;
     const { name, email, password } = req.body;
 
     try {
-        await User.update(id, name, email, password); 
+        await User.update(id, name, email, password);
         console.log(`Usuario ID: ${id} actualizado`);
         res.redirect("/usuarios");
     } catch (error) {
@@ -115,17 +126,17 @@ const update = async (req, res) => {
 
 const destroy = async (req, res) => {
     // MÉTODO: DELETE (o POST simulado)
-    // PROCESO: Elimina el usuario de la base de datos usando el Stored Procedure.
+    // PROCESO: Realiza el Soft Delete (cambia el status a eliminado).
     const { id } = req.params;
 
     try {
         // El Modelo devuelve el objeto con el conteo de filas afectadas.
         const [result] = await User.destroy(id);
-        
-        // Accedemos al resultado correcto del SP de eliminación
+
+        // Accedemos al resultado correcto del SP de eliminación (Soft Delete)
         const affectedRows = result[0].affected_rows;
         
-        console.log(`Usuarios eliminados: ${affectedRows}`);
+        console.log(`Usuarios eliminados (soft delete): ${affectedRows}`);
         res.redirect("/usuarios");
     } catch (error) {
         console.error("Error al eliminar usuario:", error);
